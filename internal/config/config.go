@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"log/slog"
 	"os"
 
@@ -17,8 +16,8 @@ func Load() (*Config, error) {
 	var err error = godotenv.Load()
 
 	if err != nil {
-		slog.Info("Fetch env variables", "Warning: ", ".env file not found, using environment variables")
-		return nil, errors.New(".env file not found.")
+		slog.Error("Warning: ", "message", ".env file not found "+err.Error())
+		return nil, err
 	}
 
 	var config *Config = &Config{
