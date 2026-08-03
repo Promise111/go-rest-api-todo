@@ -3,10 +3,12 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/Promise111/go-rest-api-todo/internal/models"
 	"github.com/Promise111/go-rest-api-todo/internal/repository"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -66,6 +68,43 @@ func GetTodosHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			"message": "Todos fetched successfully",
 			"data":    todos,
 			"length":  len(todos),
+		})
+	}
+}
+
+func GetTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		todo, err := repository.GetTodoByID(pool, id)
+
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{
+					"status":  false,
+					"message": "Todo not found",
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  true,
+			"message": "Todo fetched succesfully",
+			"data":    todo,
 		})
 	}
 }
