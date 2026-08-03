@@ -31,9 +31,9 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to connect to Database")
-		defer pool.Close()
 		os.Exit(1)
 	}
+	defer pool.Close()
 
 	r := router.Router()
 

@@ -7,6 +7,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// migrate create -ext sql -dir migrations -seq create_todos_table - creates migration files
+// migrate -database db_url -path migrations up/down - actually migrate // to reconciliate migration version number use "force version_number"
+
 func Connect(databaseURL string) (*pgxpool.Pool, error) {
 	var ctx context.Context = context.Background()
 
