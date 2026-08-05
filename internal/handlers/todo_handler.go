@@ -187,3 +187,39 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 
 	}
 }
+
+func DeleteTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idString := c.Param("id")
+		id, err := strconv.Atoi(idString)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid id route parameter",
+			})
+			return
+		}
+
+		err = repository.DeleteTodoByID(pool, id)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{
+					"status":  false,
+					"message": "Todo not found",
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  true,
+			"message": "Todo deleted successfully!",
+		})
+	}
+}
