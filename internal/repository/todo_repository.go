@@ -117,13 +117,13 @@ func UpdateTodoByID(pool *pgxpool.Pool, id int, title string, completed bool) (*
 
 	var query string = `
 	UPDATE todos 
-	SET title = $1, completed = $2 updated_at = CURRENT_TIMESTAMP
+	SET title = $1, completed = $2, updated_at = CURRENT_TIMESTAMP
 	WHERE id = $3
 	RETURNING id, title, completed, created_at, updated_at
 	`
 
 	var todo models.Todo
-	var err error = pool.QueryRow(ctx, query, id, title, completed).Scan(
+	var err error = pool.QueryRow(ctx, query, title, completed, id).Scan(
 		&todo.ID,
 		&todo.Title,
 		&todo.Completed,
