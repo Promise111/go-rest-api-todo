@@ -17,6 +17,11 @@ type CreateTodoInput struct {
 	Completed bool   `json:"completed"`
 }
 
+type UpdateTodoInput struct {
+	Title     *string `json:"title"`
+	Completed *bool   `json:"completed"`
+}
+
 func CreateTodoHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var todoInput CreateTodoInput
@@ -106,5 +111,79 @@ func GetTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 			"message": "Todo fetched succesfully",
 			"data":    todo,
 		})
+	}
+}
+
+func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var idString string = c.Param("id")
+		id, err := strconv.Atoi(idString)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid id type",
+			})
+			return
+		}
+
+		var todoStruct UpdateTodoInput
+		if err := c.ShouldBindJSON(&todoStruct); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		existing, err := repository.GetTodoByID(pool, id)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{
+					"status":  false,
+					"message": err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		title := existing.Title
+		if todoStruct.Title != nil {
+			title = *todoStruct.Title
+		}
+
+		if todoStruct.Title == nil && todoStruct.Completed == nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "At least one of title or completed must be provided",
+			})
+			return
+		}
+
+		completed := existing.Completed
+		if todoStruct.Completed != nil {
+			completed = *todoStruct.Completed
+		}
+
+		var todo *models.Todo
+		todo, err = repository.UpdateTodoByID(pool, id, title, completed)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  true,
+			"message": todo,
+		})
+
 	}
 }

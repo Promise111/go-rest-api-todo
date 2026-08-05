@@ -22,6 +22,7 @@ func Router(pool *pgxpool.Pool) *gin.Engine {
 		todos.POST("", handler.CreateTodoHandler(pool))
 		todos.GET("", handler.GetTodosHandler(pool))
 		todos.GET("/:id", handler.GetTodoByID(pool))
+		todos.PATCH("/:id", handler.UpdateTodoByID(pool))
 	}
 
 	return r
