@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -18,8 +19,8 @@ type CreateTodoInput struct {
 }
 
 type UpdateTodoInput struct {
-	Title     *string `title:"json"`
-	Completed *bool   `completed:"json"`
+	Title     *string `json:"title"`
+	Completed *bool   `json:"completed"`
 }
 
 func CreateTodoHandler(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -139,7 +140,7 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 		var existing *models.Todo
 		existing, err = repository.GetTodoByID(pool, id)
 		if err != nil {
-			if err == pgx.ErrNoRows {
+			if errors.Is(err, pgx.ErrNoRows) {
 				ctx.JSON(http.StatusNotFound, gin.H{
 					"status":  false,
 					"message": "Record not found",
@@ -165,6 +166,14 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
 				"message": "Expected at-least one of title or completed",
+			})
+			return
+		}
+
+		if title == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Title can not be empty",
 			})
 			return
 		}
