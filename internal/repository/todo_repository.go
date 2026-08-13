@@ -147,13 +147,13 @@ func DeleteTodoByID(pool *pgxpool.Pool, id int) error {
 	DELETE FROM todos 
 	WHERE id = $1
 	`
-	res, err := pool.Exec(ctx, query, id)
+	cmdTag, err := pool.Exec(ctx, query, id)
 
 	if err != nil {
 		return err
 	}
 
-	if res.RowsAffected() == 0 {
+	if cmdTag.RowsAffected() == 0 {
 		return pgx.ErrNoRows
 	}
 
