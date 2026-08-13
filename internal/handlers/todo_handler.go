@@ -43,7 +43,7 @@ func CreateTodoHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
@@ -64,7 +64,7 @@ func GetTodosHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
@@ -102,7 +102,7 @@ func GetTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
@@ -143,13 +143,13 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 			if errors.Is(err, pgx.ErrNoRows) {
 				ctx.JSON(http.StatusNotFound, gin.H{
 					"status":  false,
-					"message": "Record not found",
+					"message": "Todo not found",
 				})
 				return
 			}
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
@@ -184,7 +184,7 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
@@ -198,20 +198,21 @@ func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func DeleteTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idString := c.Param("id")
-		id, err := strconv.Atoi(idString)
-
+		var err error
+		var id int
+		var idParam string = c.Param("id")
+		id, err = strconv.Atoi(idParam)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "Invalid id route parameter",
+				"message": err.Error(),
 			})
 			return
 		}
 
-		err = repository.DeleteTodoByID(pool, id)
-		if err != nil {
-			if err == pgx.ErrNoRows {
+		if err = repository.DeleteTodoByID(pool, id); err != nil {
+			slog.Error("Error", "error", err)
+			if errors.Is(err, pgx.ErrNoRows) {
 				c.JSON(http.StatusNotFound, gin.H{
 					"status":  false,
 					"message": "Todo not found",
@@ -220,11 +221,12 @@ func DeleteTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": err.Error(),
+				"message": "Something went wrong!",
 			})
 			return
 		}
 
+		// http.StatusNoContent
 		c.JSON(http.StatusOK, gin.H{
 			"status":  true,
 			"message": "Todo deleted successfully!",
