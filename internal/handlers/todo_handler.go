@@ -18,8 +18,8 @@ type CreateTodoInput struct {
 }
 
 type UpdateTodoInput struct {
-	Title     *string `json:"title"`
-	Completed *bool   `json:"completed"`
+	Title     *string `title:"json"`
+	Completed *bool   `completed:"json"`
 }
 
 func CreateTodoHandler(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -115,76 +115,75 @@ func GetTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
 }
 
 func UpdateTodoByID(pool *pgxpool.Pool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var idString string = c.Param("id")
-		id, err := strconv.Atoi(idString)
+	return func(ctx *gin.Context) {
+		var idParam = ctx.Param("id")
+		var id int
+		var err error
+		id, err = strconv.Atoi(idParam)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
+			ctx.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "Invalid id type",
+				"message": "ID route parameter is invalid",
 			})
 			return
 		}
-
-		var todoStruct UpdateTodoInput
-		if err := c.ShouldBindJSON(&todoStruct); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
+		var input UpdateTodoInput
+		err = ctx.ShouldBindJSON(&input)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
 				"message": err.Error(),
 			})
 			return
 		}
-
-		existing, err := repository.GetTodoByID(pool, id)
+		var existing *models.Todo
+		existing, err = repository.GetTodoByID(pool, id)
 		if err != nil {
 			if err == pgx.ErrNoRows {
-				c.JSON(http.StatusNotFound, gin.H{
+				ctx.JSON(http.StatusNotFound, gin.H{
 					"status":  false,
-					"message": err.Error(),
+					"message": "Record not found",
 				})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{
+			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
 				"message": err.Error(),
 			})
 			return
 		}
-
-		title := existing.Title
-		if todoStruct.Title != nil {
-			title = *todoStruct.Title
+		var title string = existing.Title
+		var completed bool = existing.Completed
+		if input.Title != nil {
+			title = *input.Title
+		}
+		if input.Completed != nil {
+			completed = *input.Completed
 		}
 
-		if todoStruct.Title == nil && todoStruct.Completed == nil {
-			c.JSON(http.StatusBadRequest, gin.H{
+		if input.Title == nil && input.Completed == nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "At least one of title or completed must be provided",
+				"message": "Expected at-least one of title or completed",
 			})
 			return
-		}
-
-		completed := existing.Completed
-		if todoStruct.Completed != nil {
-			completed = *todoStruct.Completed
 		}
 
 		var todo *models.Todo
 		todo, err = repository.UpdateTodoByID(pool, id, title, completed)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
 				"message": err.Error(),
 			})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		ctx.JSON(http.StatusAccepted, gin.H{
 			"status":  true,
-			"message": todo,
-		})
-
+			"message": "Todo updated successfully",
+			"data":    todo})
 	}
 }
 
