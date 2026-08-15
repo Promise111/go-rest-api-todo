@@ -25,6 +25,10 @@ func Router(pool *pgxpool.Pool) *gin.Engine {
 		todos.PATCH("/:id", handler.UpdateTodoByID(pool))
 		todos.DELETE("/:id", handler.DeleteTodoByID(pool))
 	}
+	{
+		var users = api.Group(utils.AuthPrefx)
+		users.POST("/register", handler.RegisterUserHandler(pool))
+	}
 
 	return r
 }
