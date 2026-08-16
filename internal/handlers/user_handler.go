@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Promise111/go-rest-api-todo/internal/models"
 	"github.com/Promise111/go-rest-api-todo/internal/repository"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -54,7 +56,8 @@ func RegisterUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		createdUser, err := repository.CreateUser(pool, user)
 		if err != nil {
-			if err.Error() != "" {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status":  false,
 					"message": "Email or Username already registered",
