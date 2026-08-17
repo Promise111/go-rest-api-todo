@@ -35,7 +35,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	r := router.Router(pool)
+	r := router.Router(pool, cfg)
 
 	r.Run(":" + cfg.Port)
 }

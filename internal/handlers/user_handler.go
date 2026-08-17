@@ -2,11 +2,15 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
+	"github.com/Promise111/go-rest-api-todo/internal/config"
 	"github.com/Promise111/go-rest-api-todo/internal/models"
 	"github.com/Promise111/go-rest-api-todo/internal/repository"
+	"github.com/Promise111/go-rest-api-todo/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -19,9 +23,13 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Email string `json:"email" binding:"required_without=Username,omitempty,email"`
+	Email    string `json:"email" binding:"required_without=Username,omitempty,email"`
 	Username string `json:"username" binding:"required_without=Email"`
 	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
 }
 
 func RegisterUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -82,5 +90,34 @@ func RegisterUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			"message": "User created successfully!",
 			"data":    createdUser,
 		})
+	}
+}
+
+func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var loginRequest LoginRequest
+		var err error
+		if err = c.ShouldBindJSON(&loginRequest); err != nil {
+			slog.Error("Error", "err", err.Error())
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				fieldErrors := make(map[string]string, len(ve))
+				for _, fe := range ve {
+					fieldErrors[utils.JsonFieldNameLogin(fe)] = utils.ValidationMessageLogin(fe)
+				}
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  false,
+					"message": "Validation failed",
+					"errors":  fieldErrors,
+				})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid JSON",
+			})
+			return
+		}
+		
 	}
 }

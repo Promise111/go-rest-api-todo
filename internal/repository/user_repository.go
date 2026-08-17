@@ -90,3 +90,31 @@ func GetUserByID(pool *pgxpool.Pool, id string) (*models.Users, error) {
 
 	return &user, nil
 }
+
+func GetUserByUsername(pool *pgxpool.Pool, username string) (*models.Users, error) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var err error
+	var query string = `
+	SELECT id, email, username, created_at, updated_at 
+	FROM users 
+	WHERE username = $1
+	RETURNING id, email, username, created_at, updated_at;
+	`
+
+	var user models.Users
+	if err = pool.QueryRow(ctx, query, username).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

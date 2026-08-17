@@ -1,13 +1,14 @@
 package router
 
 import (
+	"github.com/Promise111/go-rest-api-todo/internal/config"
 	handler "github.com/Promise111/go-rest-api-todo/internal/handlers"
 	"github.com/Promise111/go-rest-api-todo/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Router(pool *pgxpool.Pool) *gin.Engine {
+func Router(pool *pgxpool.Pool, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 	api := r.Group(utils.APIPrefix)
@@ -28,6 +29,7 @@ func Router(pool *pgxpool.Pool) *gin.Engine {
 	{
 		var users = api.Group(utils.AuthPrefx)
 		users.POST("/register", handler.RegisterUserHandler(pool))
+		users.POST("/login", handler.LoginHandler(pool, cfg))
 	}
 
 	return r
