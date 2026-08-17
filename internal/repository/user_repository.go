@@ -23,7 +23,6 @@ func CreateUser(pool *pgxpool.Pool, user *models.Users) (*models.Users, error) {
 	err = pool.QueryRow(ctx, query, user.Email, user.Password, user.Username).Scan(
 		&user.ID,
 		&user.Email,
-		&user.Password,
 		&user.Username,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -44,7 +43,7 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.Users, error) {
 
 	var err error
 	var query string = `
-	SELECT id, email, password, username, created_at, updated_at 
+	SELECT id, email, username, created_at, updated_at 
 	FROM users 
 	WHERE email = $1
 	`
@@ -52,7 +51,6 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.Users, error) {
 	err = pool.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Email,
-		&user.Password,
 		&user.Username,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -73,7 +71,7 @@ func GetUserByID(pool *pgxpool.Pool, id string) (*models.Users, error) {
 
 	var err error
 	var query string = `
-	SELECT id, email, password, username, created_at, updated_at 
+	SELECT id, email, username, created_at, updated_at 
 	FROM users 
 	WHERE id = $1
 	`
@@ -81,7 +79,6 @@ func GetUserByID(pool *pgxpool.Pool, id string) (*models.Users, error) {
 	err = pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Email,
-		&user.Password,
 		&user.Username,
 		&user.CreatedAt,
 		&user.UpdatedAt,
