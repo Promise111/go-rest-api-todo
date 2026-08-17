@@ -18,6 +18,12 @@ type RegisterRequest struct {
 	Username string `json:"username" binding:"required"`
 }
 
+type LoginRequest struct {
+	Email string `json:"email" binding:"required_without=Username,omitempty,email"`
+	Username string `json:"username" binding:"required_without=Email"`
+	Password string `json:"password" binding:"required"`
+}
+
 func RegisterUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var registerRequest RegisterRequest
