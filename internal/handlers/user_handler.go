@@ -161,17 +161,17 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-		tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
+		jwtToken, err := token.SignedString([]byte(cfg.JWTSecret))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": "Something went wrong",
+				"message": "SOmething went wrong!",
 			})
 			return
 		}
 
 		c.JSON(http.StatusOK, LoginResponse{
-			Token: tokenString,
+			Token: jwtToken,
 		})
 	}
 }
