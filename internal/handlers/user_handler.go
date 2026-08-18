@@ -2,8 +2,9 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/Promise111/go-rest-api-todo/internal/config"
 	"github.com/Promise111/go-rest-api-todo/internal/models"
@@ -11,6 +12,8 @@ import (
 	"github.com/Promise111/go-rest-api-todo/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -63,9 +66,9 @@ func RegisterUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		var user *models.Users = &models.Users{
-			Email:    registerRequest.Email,
+			Email:    strings.ToLower(registerRequest.Email),
 			Password: string(hashedPass),
-			Username: registerRequest.Username,
+			Username: strings.ToLower(registerRequest.Username),
 		}
 
 		createdUser, err := repository.CreateUser(pool, user)
@@ -98,7 +101,6 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 		var loginRequest LoginRequest
 		var err error
 		if err = c.ShouldBindJSON(&loginRequest); err != nil {
-			slog.Error("Error", "err", err.Error())
 			var ve validator.ValidationErrors
 			if errors.As(err, &ve) {
 				fieldErrors := make(map[string]string, len(ve))
@@ -118,6 +120,58 @@ func LoginHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			})
 			return
 		}
-		
+		var user *models.Users
+		var email string = strings.ToLower(loginRequest.Email)
+		var username string = strings.ToLower(loginRequest.Username)
+		if loginRequest.Email != "" {
+			user, err = repository.GetUserByEmail(pool, email)
+		} else if loginRequest.Username != "" {
+			user, err = repository.GetUserByUsername(pool, username)
+		}
+
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"status":  false,
+					"message": "Invalid credentials",
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Something went wrong!",
+			})
+			return
+		}
+
+		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "Invalid login credentials",
+			})
+			return
+		}
+
+		var claims = jwt.MapClaims{
+			"user_id":  user.ID,
+			"email":    user.Email,
+			"username": user.Username,
+			"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+		tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Something went wrong",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, LoginResponse{
+			Token: tokenString,
+		})
 	}
 }
