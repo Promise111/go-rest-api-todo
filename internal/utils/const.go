@@ -1,9 +1,10 @@
 package utils
 
 const (
-	APIPrefix    = "/api"
-	HealthPrefix = "/health"
-	TodosPrefix  = "/todos"
-	UsersPrefix  = "/users"
-	AuthPrefx = "/auth"
+	APIPrefix       = "/api"
+	HealthPrefix    = "/health"
+	TodosPrefix     = "/todos"
+	UsersPrefix     = "/users"
+	AuthPrefx       = "/auth"
+	ProtectedPrefix = "/protected-test"
 )
