@@ -20,7 +20,7 @@ func Router(pool *pgxpool.Pool, cfg *config.Config) *gin.Engine {
 	}
 
 	{
-		todos := api.Group(utils.TodosPrefix)
+		todos := api.Group(utils.TodosPrefix, middlware.AuthMiddleware(cfg))
 		todos.POST("", handler.CreateTodoHandler(pool))
 		todos.GET("", handler.GetTodosHandler(pool))
 		todos.GET("/:id", handler.GetTodoByID(pool))
